@@ -1,19 +1,15 @@
 "use strict";
 
 var _shared = require("../shared");
-
 var _lodash = require("lodash");
-
 function quote(str) {
   return `\`${str}\``;
 }
-
 function joinUnions(unions, as) {
   return `FROM (
 ${unions.join('\nUNION\n')}
 ) AS ${quote(as)}`;
 }
-
 function paginatedSelect(table, as, whereConditions, order, limit, offset, opts = {}) {
   const {
     extraJoin,
@@ -29,19 +25,16 @@ function paginatedSelect(table, as, whereConditions, order, limit, offset, opts 
   ORDER BY ${(0, _shared.orderingsToString)(order.columns, quote, order.table)}
   LIMIT ${limit}${offset ? ' OFFSET ' + offset : ''})`;
 }
-
-const dialect = module.exports = { ...require('./mixins/pagination-not-supported'),
+const dialect = module.exports = {
+  ...require('./mixins/pagination-not-supported'),
   name: 'mariadb',
   quote,
-
   compositeKey(parent, keys) {
     keys = keys.map(key => `${quote(parent)}.${quote(key)}`);
     return `CONCAT(${keys.join(', ')})`;
   },
-
   handlePaginationAtRoot: async function (parent, node, context, tables) {
     const pagingWhereConditions = [];
-
     if (node.sortKey) {
       const {
         limit,
@@ -49,11 +42,9 @@ const dialect = module.exports = { ...require('./mixins/pagination-not-supported
         whereCondition: whereAddendum
       } = (0, _shared.interpretForKeysetPaging)(node, dialect);
       pagingWhereConditions.push(whereAddendum);
-
       if (node.where) {
         pagingWhereConditions.push(await node.where(`${quote(node.as)}`, node.args || {}, context, node));
       }
-
       tables.push((0, _shared.keysetPagingSelect)(node.name, pagingWhereConditions, order, limit, node.as, {
         q: quote
       }));
@@ -63,11 +54,9 @@ const dialect = module.exports = { ...require('./mixins/pagination-not-supported
         offset,
         order
       } = (0, _shared.interpretForOffsetPaging)(node, dialect);
-
       if (node.where) {
         pagingWhereConditions.push(await node.where(`${quote(node.as)}`, node.args || {}, context, node));
       }
-
       tables.push((0, _shared.offsetPagingSelect)(node.name, pagingWhereConditions, order, limit, offset, node.as, {
         q: quote
       }));
@@ -75,11 +64,9 @@ const dialect = module.exports = { ...require('./mixins/pagination-not-supported
   },
   handleBatchedOneToManyPaginated: async function (parent, node, context, tables, batchScope) {
     const pagingWhereConditions = [];
-
     if (node.where) {
       pagingWhereConditions.push(await node.where(`${quote(node.as)}`, node.args || {}, context, node));
     }
-
     if (node.sortKey) {
       const {
         limit,
@@ -111,15 +98,12 @@ const dialect = module.exports = { ...require('./mixins/pagination-not-supported
   },
   handleBatchedManyToManyPaginated: async function (parent, node, context, tables, batchScope, joinCondition) {
     const pagingWhereConditions = [];
-
     if (node.junction.where) {
       pagingWhereConditions.push(await node.junction.where(`${quote(node.junction.as)}`, node.args || {}, context, node));
     }
-
     if (node.where) {
       pagingWhereConditions.push(await node.where(`${quote(node.as)}`, node.args || {}, context, node));
     }
-
     if (node.where || node.orderBy) {
       var extraJoin = {
         name: node.name,
@@ -127,7 +111,6 @@ const dialect = module.exports = { ...require('./mixins/pagination-not-supported
         condition: joinCondition
       };
     }
-
     if (node.sortKey || node.junction.sortKey) {
       const {
         limit,
@@ -159,7 +142,6 @@ const dialect = module.exports = { ...require('./mixins/pagination-not-supported
       });
       tables.push(joinUnions(unions, node.junction.as));
     }
-
     tables.push(`LEFT JOIN ${node.name} AS ${quote(node.as)} ON ${joinCondition}`);
   }
 };
